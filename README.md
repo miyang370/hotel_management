@@ -1,6 +1,27 @@
 # 酒店预订管理系统
 
-课程设计：Java Swing + Java JDBC + MySQL。第一天完成项目骨架、三张核心表、示例客房和数据库读取入口；登录和 Swing 主窗口从第二天实现。
+课程设计：Java Swing + Java JDBC + MySQL。已完成第一天数据库骨架，以及第二天管理员登录、密码哈希初始化、主窗口导航和退出登录。五个业务页面目前为占位页面。
+
+## 第二天：初始化管理员并启动
+
+先完成下方的数据库、驱动和本地配置准备，再在项目根目录的 PowerShell 终端执行：
+
+```powershell
+.\scripts\setup-admin.ps1
+.\scripts\run.ps1
+```
+
+初始化命令会要求输入账号并两次输入密码，密码不会回显。账号为 3～50 位字母、数字或下划线，密码为 8～128 位。重复账号创建失败，不覆盖已有密码。不要在 IDEA 控制台执行初始化，应使用 IDEA 的 Terminal 或独立 PowerShell。
+
+默认启动 Swing 登录窗口；登录成功进入主窗口，可切换客房管理、空房查询与预订、预订与入住、退房结算、客人与订单查询五个页面。业务操作将在后续阶段开发。退出登录会返回登录窗口。
+
+数据库验证入口仍然保留：
+
+```powershell
+java -cp "target/classes;lib/*" com.hotel.Main --check-db
+```
+
+在 IDEA 中启动 Main 前，请将工作目录设为项目根目录，并重新加载 Maven 依赖。若使用 Maven，先执行下方的依赖复制命令，再使用初始化脚本。
 
 ## 环境
 
@@ -35,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 
 ```powershell
 mvn compile dependency:copy-dependencies -DoutputDirectory=lib
-java -cp "target/classes;lib/*" com.hotel.Main
+java -cp "target/classes;lib/*" com.hotel.Main --check-db
 ```
 
 初始化成功后，应显示“数据库连接成功，读取到 4 间客房”及四间示例客房。已有数据时数量可能不同。验证失败会以非零退出码结束，不打印数据库密码。
@@ -53,4 +74,4 @@ java -cp "target/classes;lib/*" com.hotel.Main
 
 未来的空房查询按日期检测有效订单重叠：新入住日期 < 已有离店日期，且新离店日期 > 已有入住日期。该跨记录约束将在预订业务中通过事务及锁定房间实现，单靠本日的建表约束不能阻止重叠预订。
 
-第一天不包含实际预订、登录或退房功能。管理员密码将在登录阶段使用加盐哈希初始化，当前不预置明文或占位密码。
+实际预订和退房功能尚未实现。管理员密码使用 PBKDF2-HMAC-SHA256、随机盐和 210000 次迭代保存，不预置默认密码。

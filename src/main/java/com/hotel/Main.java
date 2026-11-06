@@ -5,9 +5,17 @@ import com.hotel.util.Database;
 import java.io.IOException;
 import java.sql.SQLException;
 
-/** Day-one command-line database check; Swing login is planned for day two. */
+/** Swing application entry point, with an optional --check-db diagnostic mode. */
 public final class Main {
     public static void main(String[] args) {
+        if (args.length == 0 || !args[0].equals("--check-db")) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
+                catch (Exception ignored) { /* Fall back to the cross-platform look and feel. */ }
+                new com.hotel.ui.LoginFrame().setVisible(true);
+            });
+            return;
+        }
         try (var connection = Database.connect()) {
             var rooms = new RoomDao().findAll(connection);
             System.out.println("数据库连接成功，读取到 " + rooms.size() + " 间客房。");
