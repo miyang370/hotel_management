@@ -25,6 +25,14 @@ public final class LoginFrame extends JFrame {
         c.gridx = 1; form.add(password, c);
         c.gridx = 0; c.gridy = 2; c.gridwidth = 2; form.add(message, c);
         c.gridy = 3; form.add(login, c);
+        JButton register = new JButton("注册账号");
+        c.gridy = 4; form.add(register, c);
+        register.addActionListener(event -> new RegisterDialog(this, name -> {
+            username.setText(name);
+            password.setText("");
+            message.setText("注册成功，请输入密码登录");
+            password.requestFocusInWindow();
+        }).setVisible(true));
         setContentPane(form);
         getRootPane().setDefaultButton(login);
         login.addActionListener(event -> submit());
