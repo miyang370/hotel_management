@@ -1,0 +1,6 @@
+/target/
+/lib/*.jar
+/config/db.properties
+*.class
+.idea/
+*.iml
