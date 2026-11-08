@@ -21,11 +21,17 @@ public final class BookingPanel extends JPanel {
     private List<Room> rooms = List.of();
     private LocalDate queriedIn, queriedOut;
     private final BookingService service = new BookingService();
+    private final boolean direct;
 
     public BookingPanel() {
+        this(false);
+    }
+    public BookingPanel(boolean direct) {
         super(new BorderLayout(0, 16)); setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
+        this.direct = direct;
+        if (direct) { arrival.setEditable(false); reserve.setText("确认直接入住"); }
         JPanel heading = new JPanel(new BorderLayout(0, 16));
-        JLabel title = new JLabel("空房查询与预订"); title.setFont(title.getFont().deriveFont(Font.BOLD, 20)); title.setForeground(UiTheme.TITLE);
+        JLabel title = new JLabel(direct ? "直接入住 · 入住日期为今天" : "空房查询与预订"); title.setFont(title.getFont().deriveFont(Font.BOLD, 20)); title.setForeground(UiTheme.TITLE);
         heading.add(title, BorderLayout.NORTH);
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12)); filters.setBackground(Color.WHITE);
         filters.add(new JLabel("入住日期")); filters.add(arrival); filters.add(new JLabel("离店日期")); filters.add(departure);
@@ -65,10 +71,10 @@ public final class BookingPanel extends JPanel {
         Room room = rooms.get(table.convertRowIndexToModel(row));
         String name = guest.getText().trim(), tel = phone.getText().trim(), id = document.getText().trim();
         LocalDate in = queriedIn, out = queriedOut;
-        task(() -> service.reserve(room, in, out, name, tel, id), number -> {
+        task(() -> direct ? service.directCheckIn(room, in, out, name, tel, id) : service.reserve(room, in, out, name, tel, id), number -> {
             rooms = List.of(); model.setRowCount(0); reserve.setEnabled(false);
             guest.setText(""); phone.setText(""); document.setText("");
-            notice.info("预订成功，订单号：" + number + "。继续预订请重新查询。");
+            notice.info((direct ? "入住成功" : "预订成功") + "，订单号：" + number + "。继续办理请重新查询。");
         });
     }
     private <T> void task(java.util.concurrent.Callable<T> work, java.util.function.Consumer<T> success) {

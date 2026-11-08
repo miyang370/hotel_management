@@ -27,7 +27,14 @@ public final class BookingService {
         }
     }
     public String reserve(Room room, LocalDate in, LocalDate out, String name, String phone, String document) throws Exception {
+        return create(room, in, out, name, phone, document, false);
+    }
+    public String directCheckIn(Room room, LocalDate in, LocalDate out, String name, String phone, String document) throws Exception {
+        return create(room, in, out, name, phone, document, true);
+    }
+    private String create(Room room, LocalDate in, LocalDate out, String name, String phone, String document, boolean direct) throws Exception {
         validateDates(in, out);
+        if (direct && !in.equals(LocalDate.now(ZoneId.of("Asia/Shanghai")))) throw new IllegalArgumentException("直接入住日期必须为今天");
         if (name.isBlank() || name.length() > 100) throw new IllegalArgumentException("姓名不能为空且最多100位");
         if (!phone.matches("[0-9+() -]{6,30}")) throw new IllegalArgumentException("请输入6～30位有效联系电话");
         if (!document.matches("[A-Za-z0-9-]{5,30}")) throw new IllegalArgumentException("证件号须为5～30位字母、数字或连字符");
@@ -51,6 +58,12 @@ public final class BookingService {
                 try (var s = c.prepareStatement("INSERT INTO hotel_order(order_number,room_id,guest_name,phone,id_number,planned_check_in,planned_check_out,daily_price,status) VALUES (?,?,?,?,?,?,?,?,'RESERVED')")) {
                     s.setString(1, number); s.setLong(2, room.id()); s.setString(3, name); s.setString(4, phone); s.setString(5, document);
                     s.setObject(6, in); s.setObject(7, out); s.setBigDecimal(8, room.dailyPrice()); s.executeUpdate();
+                }
+                if (direct) {
+                    try (var s = c.prepareStatement("UPDATE hotel_order SET status='CHECKED_IN',actual_check_in=? WHERE order_number=?")) {
+                        s.setObject(1, LocalDateTime.now(ZoneId.of("Asia/Shanghai"))); s.setString(2, number); s.executeUpdate();
+                    }
+                    try (var s = c.prepareStatement("UPDATE room SET status='OCCUPIED' WHERE id=?")) { s.setLong(1, room.id()); s.executeUpdate(); }
                 }
                 c.commit(); return number;
             } catch (Exception e) {

@@ -50,6 +50,31 @@ public final class BookingIntegrationCheck {
                 if (a.get(30, TimeUnit.SECONDS) == b.get(30, TimeUnit.SECONDS)) throw new AssertionError("并发提交必须仅有一个成功");
             } finally { pool.shutdownNow(); pool.awaitTermination(15, TimeUnit.SECONDS); }
             System.out.println("PASS: overlap, adjacency, statuses, concurrent reservations");
+            var stays = new com.hotel.service.StayService();
+            try (var c = Database.connect(); var s = c.prepareStatement("UPDATE hotel_order SET status='CANCELLED' WHERE room_id=?")) {
+                s.setLong(1,id); s.executeUpdate();
+            }
+            LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+            String cancelled = service.reserve(room, today, today.plusDays(1), "取消测试", "13800000000", "TEST004");
+            long cancelledId = stays.search(cancelled).getFirst().id();
+            stays.cancel(cancelledId);
+            try { stays.checkIn(cancelledId); throw new AssertionError("取消订单不能入住"); } catch (IllegalArgumentException expected) { }
+            String booked = service.reserve(room, today, today.plusDays(1), "入住测试", "13800000000", "TEST005");
+            long bookedId = stays.search(booked).getFirst().id();
+            stays.checkIn(bookedId);
+            try { stays.checkIn(bookedId); throw new AssertionError("重复入住应拒绝"); } catch (IllegalArgumentException expected) { }
+            try { stays.cancel(bookedId); throw new AssertionError("入住后不可取消"); } catch (IllegalArgumentException expected) { }
+            try { service.directCheckIn(room, today, today.plusDays(1), "直接入住测试", "13800000000", "TEST006"); throw new AssertionError("占用房间不能直接入住"); } catch (IllegalArgumentException expected) { }
+            try (var c = Database.connect()) {
+                try (var s = c.prepareStatement("UPDATE hotel_order SET status='CHECKED_OUT' WHERE id=?")) { s.setLong(1,bookedId); s.executeUpdate(); }
+                try (var s = c.prepareStatement("UPDATE room SET status='AVAILABLE' WHERE id=?")) { s.setLong(1,id); s.executeUpdate(); }
+            }
+            String direct = service.directCheckIn(room, today, today.plusDays(1), "直接入住测试", "13800000000", "TEST007");
+            if (!stays.search(direct).getFirst().status().equals("CHECKED_IN")) throw new AssertionError("直接入住订单状态错误");
+            try (var c = Database.connect(); var s = c.prepareStatement("SELECT status FROM room WHERE id=?")) {
+                s.setLong(1,id); try(var r=s.executeQuery()) { r.next(); if(!r.getString(1).equals("OCCUPIED")) throw new AssertionError("房态未同步"); }
+            }
+            System.out.println("PASS: cancellation, check-in, duplicate rejection, direct check-in, room status");
         } finally {
             try (var c = Database.connect()) {
                 try (var s = c.prepareStatement("DELETE FROM hotel_order WHERE room_id=?")) { s.setLong(1, id); s.executeUpdate(); }

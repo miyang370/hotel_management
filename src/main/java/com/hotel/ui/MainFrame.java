@@ -45,7 +45,7 @@ public final class MainFrame extends JFrame {
                     BorderFactory.createEmptyBorder(20, 20, 20, 20)));
             card.add(new JLabel("<html>" + descriptions[i] + "<br><br>本页面将在后续开发阶段实现。</html>"), BorderLayout.NORTH);
             page.add(card, BorderLayout.CENTER);
-            content.add(i == 0 ? new RoomPanel() : i == 1 ? new BookingPanel() : page, name);
+            content.add(i == 0 ? new RoomPanel() : i == 1 ? new BookingPanel() : i == 2 ? new StayPanel() : page, name);
             JButton button = new JButton(name);
             navigation.add(button);
             UiTheme.button(button, i == 0);
