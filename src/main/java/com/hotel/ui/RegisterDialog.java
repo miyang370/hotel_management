@@ -13,7 +13,7 @@ public final class RegisterDialog extends JDialog {
     private final JPasswordField password = new JPasswordField(22);
     private final JPasswordField confirmation = new JPasswordField(22);
     private final JButton submit = new JButton("确认注册");
-    private final JLabel message = new JLabel("账号：3～50位字母、数字或下划线；密码：8～128位");
+    private final AuthStyle.Notice message = new AuthStyle.Notice("账号为3～50位字母、数字或下划线，密码为8～128位");
     private boolean busy;
 
     public RegisterDialog(JFrame owner, Consumer<String> onRegistered) {
@@ -41,9 +41,10 @@ public final class RegisterDialog extends JDialog {
         c.gridy = 5; form.add(back, c);
         back.addActionListener(event -> { if (!busy) dispose(); });
         submit.addActionListener(event -> register(onRegistered));
-        setContentPane(form);
+        setContentPane(AuthStyle.shell("创建管理员账号", "填写以下信息，注册后即可返回登录", form));
         getRootPane().setDefaultButton(submit);
-        pack(); setResizable(false); setLocationRelativeTo(owner);
+        pack(); setSize(Math.max(800, getWidth()), Math.max(740, getHeight()));
+        setMinimumSize(getSize()); setLocationRelativeTo(owner);
     }
 
     private void register(Consumer<String> onRegistered) {
@@ -57,13 +58,13 @@ public final class RegisterDialog extends JDialog {
         Arrays.fill(repeated, '\0');
         if (error != null) {
             Arrays.fill(secret, '\0');
-            message.setText(error);
+            message.error(error);
             return;
         }
         busy = true;
         submit.setEnabled(false); username.setEnabled(false);
         password.setEnabled(false); confirmation.setEnabled(false);
-        message.setText("正在注册，请稍候……");
+        message.info("正在注册，请稍候……");
         new SwingWorker<Void, Void>() {
             @Override protected Void doInBackground() throws Exception {
                 try { new AuthService().createAdmin(name, secret); return null; }
@@ -76,14 +77,14 @@ public final class RegisterDialog extends JDialog {
                     onRegistered.accept(name);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    message.setText("注册被中断，请稍后重试");
+                    message.error("注册被中断，请稍后重试");
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
                     if (cause instanceof SQLException sql && sql.getErrorCode() == 1062)
-                        message.setText("该账号已注册，请更换账号或返回登录");
+                        message.error("该账号已注册，请更换账号或返回登录");
                     else if (cause instanceof IllegalArgumentException)
-                        message.setText(cause.getMessage());
-                    else message.setText("注册失败，请检查数据库配置、驱动和数据表");
+                        message.error(cause.getMessage());
+                    else message.error("注册失败，请检查数据库配置、驱动和数据表");
                 } finally {
                     busy = false;
                     submit.setEnabled(true); username.setEnabled(true);

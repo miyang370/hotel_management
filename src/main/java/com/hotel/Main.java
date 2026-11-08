@@ -12,6 +12,7 @@ public final class Main {
             javax.swing.SwingUtilities.invokeLater(() -> {
                 try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
                 catch (Exception ignored) { /* Fall back to the cross-platform look and feel. */ }
+                com.hotel.ui.UiTheme.install();
                 new com.hotel.ui.LoginFrame().setVisible(true);
             });
             return;

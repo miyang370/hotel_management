@@ -9,7 +9,7 @@ public final class LoginFrame extends JFrame {
     private final JTextField username = new JTextField(20);
     private final JPasswordField password = new JPasswordField(20);
     private final JButton login = new JButton("登录");
-    private final JLabel message = new JLabel("请输入管理员账号和密码");
+    private final AuthStyle.Notice message = new AuthStyle.Notice("请输入管理员账号和密码");
 
     public LoginFrame() {
         super("酒店预订管理系统 · 管理员登录");
@@ -30,13 +30,14 @@ public final class LoginFrame extends JFrame {
         register.addActionListener(event -> new RegisterDialog(this, name -> {
             username.setText(name);
             password.setText("");
-            message.setText("注册成功，请输入密码登录");
+            message.info("注册成功，请输入密码登录");
             password.requestFocusInWindow();
         }).setVisible(true));
-        setContentPane(form);
+        setContentPane(AuthStyle.shell("欢迎登录", "登录管理员账号，开始处理酒店业务", form));
         getRootPane().setDefaultButton(login);
         login.addActionListener(event -> submit());
-        pack(); setResizable(false); setLocationRelativeTo(null);
+        pack(); setSize(Math.max(760, getWidth()), Math.max(620, getHeight()));
+        setMinimumSize(getSize()); setLocationRelativeTo(null);
     }
 
     private void submit() {
@@ -44,11 +45,11 @@ public final class LoginFrame extends JFrame {
         char[] secret = password.getPassword();
         if (name.isEmpty() || secret.length == 0 || name.length() > 50 || secret.length > 128) {
             Arrays.fill(secret, '\0');
-            message.setText("请输入有效账号和密码（账号≤50，密码≤128位）");
+            message.error("请输入有效账号和密码（账号≤50，密码≤128位）");
             return;
         }
         login.setEnabled(false); username.setEnabled(false); password.setEnabled(false);
-        message.setText("正在验证，请稍候……");
+        message.info("正在验证，请稍候……");
         new SwingWorker<Boolean, Void>() {
             protected Boolean doInBackground() throws Exception {
                 try { return new AuthService().login(name, secret); }
@@ -60,10 +61,10 @@ public final class LoginFrame extends JFrame {
                         new MainFrame(name).setVisible(true);
                         dispose();
                     } else {
-                        message.setText("账号或密码错误");
+                        message.error("账号或密码错误");
                     }
                 } catch (Exception e) {
-                    message.setText("连接失败，请检查数据库配置、驱动和数据表");
+                    message.error("连接失败，请检查数据库配置、驱动和数据表");
                 } finally {
                     login.setEnabled(true); username.setEnabled(true); password.setEnabled(true);
                     password.setText(""); password.requestFocusInWindow();
