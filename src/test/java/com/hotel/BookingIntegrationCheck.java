@@ -75,6 +75,18 @@ public final class BookingIntegrationCheck {
                 s.setLong(1,id); try(var r=s.executeQuery()) { r.next(); if(!r.getString(1).equals("OCCUPIED")) throw new AssertionError("房态未同步"); }
             }
             System.out.println("PASS: cancellation, check-in, duplicate rejection, direct check-in, room status");
+            var checkout = new com.hotel.service.CheckoutService();
+            long directId = stays.search(direct).getFirst().id();
+            try { checkout.checkout(directId, new BigDecimal("999")); throw new AssertionError("金额变更必须重新确认"); } catch(IllegalArgumentException expected) { }
+            if(!stays.search(direct).getFirst().status().equals("CHECKED_IN"))throw new AssertionError("失败后订单应保持在住");
+            var bill = checkout.checkout(directId, new BigDecimal("100.00"));
+            if(bill.nights()!=1 || bill.total().compareTo(new BigDecimal("100.00"))!=0)throw new AssertionError("同日退房须计一晚");
+            try { checkout.checkout(directId, bill.total()); throw new AssertionError("重复退房必须拒绝"); } catch(IllegalArgumentException expected) { }
+            try(var c=Database.connect();var s=c.prepareStatement("SELECT r.status,o.status,o.total_amount,o.actual_check_out FROM room r JOIN hotel_order o ON o.room_id=r.id WHERE o.id=?")) {
+                s.setLong(1,directId);try(var r=s.executeQuery()){r.next();if(!r.getString(1).equals("AVAILABLE")||!r.getString(2).equals("CHECKED_OUT")||r.getBigDecimal(3).compareTo(bill.total())!=0||r.getObject(4)==null)throw new AssertionError("退房数据未同步");}
+            }
+            if(com.hotel.service.CheckoutService.nights(today.minusDays(3).atTime(23,0),today.atTime(8,0))!=3)throw new AssertionError("跨日计费错误");
+            System.out.println("PASS: checkout amount, rollback, duplicate rejection, room release, multi-night billing");
         } finally {
             try (var c = Database.connect()) {
                 try (var s = c.prepareStatement("DELETE FROM hotel_order WHERE room_id=?")) { s.setLong(1, id); s.executeUpdate(); }

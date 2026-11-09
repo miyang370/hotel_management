@@ -61,7 +61,7 @@ public final class BookingService {
                 }
                 if (direct) {
                     try (var s = c.prepareStatement("UPDATE hotel_order SET status='CHECKED_IN',actual_check_in=? WHERE order_number=?")) {
-                        s.setObject(1, LocalDateTime.now(ZoneId.of("Asia/Shanghai"))); s.setString(2, number); s.executeUpdate();
+                        s.setObject(1, LocalDateTime.now(ZoneId.of("Asia/Shanghai")).withNano(0)); s.setString(2, number); s.executeUpdate();
                     }
                     try (var s = c.prepareStatement("UPDATE room SET status='OCCUPIED' WHERE id=?")) { s.setLong(1, room.id()); s.executeUpdate(); }
                 }

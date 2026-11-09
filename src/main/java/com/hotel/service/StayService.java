@@ -49,7 +49,7 @@ public final class StayService {
                     try(var s=c.prepareStatement("UPDATE room SET status='OCCUPIED' WHERE id=?")) { s.setLong(1,room); s.executeUpdate(); }
                 }
                 try(var s=c.prepareStatement(checkIn ? "UPDATE hotel_order SET status='CHECKED_IN',actual_check_in=? WHERE id=?" : "UPDATE hotel_order SET status='CANCELLED' WHERE id=?")) {
-                    if(checkIn) { s.setObject(1,LocalDateTime.now(ZoneId.of("Asia/Shanghai"))); s.setLong(2,id); } else s.setLong(1,id);
+                    if(checkIn) { s.setObject(1,LocalDateTime.now(ZoneId.of("Asia/Shanghai")).withNano(0)); s.setLong(2,id); } else s.setLong(1,id);
                     s.executeUpdate();
                 }
                 c.commit();
