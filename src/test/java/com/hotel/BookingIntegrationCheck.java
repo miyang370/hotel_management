@@ -87,6 +87,14 @@ public final class BookingIntegrationCheck {
             }
             if(com.hotel.service.CheckoutService.nights(today.minusDays(3).atTime(23,0),today.atTime(8,0))!=3)throw new AssertionError("跨日计费错误");
             System.out.println("PASS: checkout amount, rollback, duplicate rejection, room release, multi-night billing");
+            var queries=new com.hotel.service.OrderQueryService();
+            var matches=queries.search(new com.hotel.service.OrderQueryService.Filter("直接入住测试","13800000000","TEST007",number,today,today,"CHECKED_OUT"));
+            if(matches.size()!=1||matches.getFirst().id()!=directId||matches.getFirst().actualDeparture()==null||matches.getFirst().total().compareTo(bill.total())!=0)throw new AssertionError("组合查询或详情字段错误");
+            if(!queries.search(new com.hotel.service.OrderQueryService.Filter("","","TEST007",number,today,today,"RESERVED")).isEmpty())throw new AssertionError("状态筛选错误");
+            if(!queries.search(new com.hotel.service.OrderQueryService.Filter("","","TEST007",number,today.plusDays(1),today.plusDays(2),"")).isEmpty())throw new AssertionError("日期筛选错误");
+            if(!queries.search(new com.hotel.service.OrderQueryService.Filter("%","","",number,null,null,"")).isEmpty())throw new AssertionError("通配符应按字面匹配");
+            if(!com.hotel.service.OrderQueryService.mask("TEST007").equals("TE***07"))throw new AssertionError("证件号脱敏错误");
+            System.out.println("PASS: combined guest filters, dates, status, detail fields, literal search, masking");
         } finally {
             try (var c = Database.connect()) {
                 try (var s = c.prepareStatement("DELETE FROM hotel_order WHERE room_id=?")) { s.setLong(1, id); s.executeUpdate(); }
